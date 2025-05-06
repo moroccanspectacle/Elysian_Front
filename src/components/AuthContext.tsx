@@ -1,6 +1,8 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'; // Use the same variable
+
 
 interface AuthContextType {
   user: any | null;
@@ -51,7 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (token) {
       setIsLoading(true);
       try {
-        const response = await fetch('http://localhost:3000/api/user/verify', {
+        const response = await fetch(`${API_BASE_URL}/user/verify`, {
           headers: {
             'auth-token': token
           }
@@ -114,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     setRememberMeOption(rememberMe);
     try {
-      const response = await fetch('http://localhost:3000/api/user/login', {
+      const response = await fetch(`${API_BASE_URL}/user/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -183,7 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('auth-token', token);
       
       // Get user info with role
-      const userResponse = await fetch('http://localhost:3000/api/user/verify', {
+      const userResponse = await fetch(`${API_BASE_URL}/user/verify`, {
         headers: {
           'auth-token': token
         }
@@ -222,7 +224,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Important: Include isSetupMode flag to tell backend this was a setup completion
       const isSetupMode = mfaSetupRequired;
       
-      const response = await fetch('http://localhost:3000/api/user/login/verify-mfa', {
+      const response = await fetch(`${API_BASE_URL}/user/login/verify-mfa`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -246,7 +248,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('auth-token', jwtToken);
       
       // Get user info
-      const userResponse = await fetch('http://localhost:3000/api/user/verify', {
+      const userResponse = await fetch(`${API_BASE_URL}user/verify`, {
         headers: {
           'auth-token': jwtToken
         }
@@ -281,7 +283,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (username: string, email: string, password: string) => {
     setError(null);
     try {
-      const response = await fetch('http://localhost:3000/api/user/register', {
+      const response = await fetch(`${API_BASE_URL}/user/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -325,7 +327,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
       if (!token) return;
       
-      const userResponse = await fetch('http://localhost:3000/api/profile', {
+      const userResponse = await fetch(`${API_BASE_URL}/profile`, {
         headers: {
           'auth-token': token
         }
