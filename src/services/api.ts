@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'; // Adjust this to your API URL
+const API_URL = 'https://elysian-ryc6x.ondigitalocean.app/elysian-back/api'; // Adjust this to your API URL
 import { VaultFile } from "../pages/VaultPage";
 
 interface SystemSettings {
