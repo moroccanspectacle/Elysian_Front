@@ -72,18 +72,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           // Only redirect if not on an appropriate page and not setting up MFA
           if (!mfaSetupRequired) { // Only redirect if not in MFA setup
-            const noRedirectPaths = ['/profile', '/settings', '/admin', '/dashboard', '/teams', '/shared-links', '/vault', '/setup-password', '/reset-password'];
+            const noRedirectPaths = ['/profile', '/settings', '/admin', '/dashboard', '/teams', '/shared-links', '/vault'];
             const currentPath = window.location.pathname;
             
-            // Add more detailed logging
-            console.log('Current path:', currentPath);
-            console.log('Path check result:', noRedirectPaths.some(path => 
-              currentPath.toLowerCase().includes(path.toLowerCase())
-            ));
-            
+            // Check specifically for setup-password and reset-password paths first
+            if (currentPath.startsWith('/setup-password') || currentPath.startsWith('/reset-password')) {
+              console.log('On password setup/reset page, preventing redirect');
+              // Do nothing - allow these pages to remain accessible
+            }
             // Make path checking more robust with case-insensitive comparison and includes instead of startsWith
-            if (!noRedirectPaths.some(path => currentPath.toLowerCase().includes(path.toLowerCase()))) {
+            else if (!noRedirectPaths.some(path => currentPath.toLowerCase().includes(path.toLowerCase()))) {
               console.log('Redirecting from', currentPath);
+              // Redirect based on user role
               if (userData.role === 'admin' || userData.role === 'super_admin') {
                 navigate('/admin');
               } else {
