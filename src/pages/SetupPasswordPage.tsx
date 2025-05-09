@@ -21,16 +21,21 @@ export function SetupPasswordPage() {
   useEffect(() => {
     const verifyToken = async () => {
       if (!token) {
+        console.error('Setup Password: Token is missing');
         setError('Invalid setup link');
         setIsVerifying(false);
         return;
       }
       
+      console.log('Setup Password: Verifying token', token.substring(0, 5) + '...');
+      
       try {
         const response = await api.auth.verifySetupToken(token);
+        console.log('Setup Password: Token verified successfully', response);
         setTokenValid(true);
         setUserData(response.user);
       } catch (err: any) {
+        console.error('Setup Password: Token verification failed', err);
         setError('This setup link is invalid or has expired');
       } finally {
         setIsVerifying(false);
@@ -78,9 +83,9 @@ export function SetupPasswordPage() {
       setSuccess(true);
       
       // Redirect to login after 3 seconds
-      // setTimeout(() => {
-      //   navigate('/login');
-      // }, 3000);
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
     } catch (err: any) {
       setError(err.message || 'Failed to set up your password');
     } finally {
