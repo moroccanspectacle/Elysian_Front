@@ -40,6 +40,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Modify the checkLoggedIn function
   const checkLoggedIn = async () => {
+    // Check if we're on a setup page that shouldn't redirect
+    const currentPath = window.location.pathname;
+    if (currentPath.startsWith('/setup-password/') || currentPath.startsWith('/reset-password/')) {
+      console.log('Setup/reset page detected, skipping auth check');
+      setIsLoading(false);
+      return; // Skip everything for these special paths
+    }
+
     // Check all possible MFA setup flags
     const mfaSetupInProgress = sessionStorage.getItem('mfa-setup-in-progress') === 'true';
     const localStorageBlock = localStorage.getItem('mfa-setup-block') === 'true';
