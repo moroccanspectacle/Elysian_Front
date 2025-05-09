@@ -38,7 +38,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [blockRedirects, setBlockRedirects] = useState(false); // Add a new state variable to block redirects during MFA setup
   const navigate = useNavigate();
 
-  // Modify the checkLoggedIn function
   const checkLoggedIn = async () => {
     // Check if we're on a setup page that shouldn't redirect
     const currentPath = window.location.pathname;
