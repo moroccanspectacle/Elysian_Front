@@ -33,7 +33,7 @@ export function SharedFilePage({}: SharedFilePageProps) {
         
         // Make sure token doesn't have any unwanted characters
         const cleanToken = shareToken.trim();
-        const response = await fetch(`http://localhost:3000/api/share/${cleanToken}`, {
+        const response = await fetch(`https://elysian-ryc6x.ondigitalocean.app/elysian-back/api/share/${cleanToken}`, {
           method: 'GET'
         });
         
