@@ -72,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           // Only redirect if not on an appropriate page and not setting up MFA
           if (!mfaSetupRequired) { // Only redirect if not in MFA setup
-            const noRedirectPaths = ['/profile', '/settings', '/admin', '/dashboard', '/teams', '/shared-links', '/vault'];
+            const noRedirectPaths = ['/profile', '/settings', '/admin', '/dashboard', '/teams', '/shared-links', '/vault', '/setup-password', '/reset-password'];
             const currentPath = window.location.pathname;
             
             // Add more detailed logging
