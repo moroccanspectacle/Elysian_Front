@@ -78,9 +78,9 @@ export function SetupPasswordPage() {
       setSuccess(true);
       
       // Redirect to login after 3 seconds
-      setTimeout(() => {
-        navigate('/login');
-      }, 3000);
+      // setTimeout(() => {
+      //   navigate('/login');
+      // }, 3000);
     } catch (err: any) {
       setError(err.message || 'Failed to set up your password');
     } finally {
