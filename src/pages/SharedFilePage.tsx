@@ -63,7 +63,7 @@ export function SharedFilePage({}: SharedFilePageProps) {
     
     try {
       // Use the proxy for API requests but full URL for downloads
-      window.location.href = `http://localhost:3000/api/share/${shareToken}/download`;
+      window.location.href = `https://elysian-ryc6x.ondigitalocean.app/elysian-back/api/share/${shareToken}/download`;
     } catch (err) {
       console.error('Download error:', err);
     }
@@ -73,7 +73,7 @@ export function SharedFilePage({}: SharedFilePageProps) {
     if (!fileInfo || !fileInfo.permissions.canView) return;
     
     // Create a proper URL for viewing
-    const viewUrl = `http://localhost:3000/api/share/${shareToken}/view`;
+    const viewUrl = `https://elysian-ryc6x.ondigitalocean.app/elysian-back/api/share/${shareToken}/view`;
     
     setViewingFile({
       url: viewUrl,
