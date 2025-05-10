@@ -61,7 +61,7 @@ export function Layout({ children, onFileUploaded }: LayoutProps) {
   const getProfileImageUrl = (imagePath: string | null | undefined) => {
     if (!imagePath) return undefined;
     if (imagePath.startsWith('http')) return imagePath;
-    return `hhttps://elysian-ryc6x.ondigitalocean.app/elysian-back/${imagePath}`;
+    return `hhttps://elysian-ryc6x.ondigitalocean.app/elysian-back/api${imagePath}`;
   };
 
   return (
