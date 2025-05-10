@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Copy, Calendar, Eye, Edit2, Download, Mail } from 'lucide-react';
+import { X, Copy, Calendar, Eye, Edit2, Download, Mail, Users } from 'lucide-react';
 import { api } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -19,13 +19,13 @@ export function ShareModal({ onClose, file }: ShareModalProps) {
   });
   const [expirationDays, setExpirationDays] = useState<number | null>(null);
   const [recipientEmail, setRecipientEmail] = useState('');
+  const [recipientUserEmailsInput, setRecipientUserEmailsInput] = useState('');
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shareCreated, setShareCreated] = useState(false);
 
-  // Convert expiration days dropdown to actual value
   const handleExpirationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     if (value === 'never') {
@@ -46,21 +46,32 @@ export function ShareModal({ onClose, file }: ShareModalProps) {
     try {
       setIsLoading(true);
       setError(null);
-      
-      const data = {
+
+      const emailsArray = recipientUserEmailsInput.split(',').map(email => email.trim()).filter(email => email);
+
+      const data: {
+        fileId: string;
+        permissions: typeof permissions;
+        expirationDays?: number;
+        recipientEmail?: string;
+        recipientUserEmails?: string[];
+      } = {
         fileId: file.id,
         permissions,
         expirationDays: expirationDays === null ? undefined : expirationDays,
-        recipientEmail: recipientEmail.trim() || undefined
       };
-      
+
+      if (emailsArray.length > 0) {
+        data.recipientUserEmails = emailsArray;
+      } else if (recipientEmail.trim()) {
+        data.recipientEmail = recipientEmail.trim();
+      }
+
       console.log('Creating share with data:', data);
-      
+
       const result = await api.shares.create(data);
       console.log('Share created:', result);
-      
-      // Make sure the URL displayed to the user is the frontend URL, not the API URL
-      // The backend should return a URL like http://localhost:3000/share/token
+
       setShareUrl(result.shareUrl);
       setShareCreated(true);
     } catch (err: any) {
@@ -164,16 +175,17 @@ export function ShareModal({ onClose, file }: ShareModalProps) {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Mail className="w-4 h-4 inline mr-2" />
-                    Share with Email (optional)
+                    <Users className="w-4 h-4 inline mr-2" />
+                    Share with Specific Users (optional)
                   </label>
                   <input
-                    type="email"
-                    value={recipientEmail}
-                    onChange={(e) => setRecipientEmail(e.target.value)}
-                    placeholder="Enter recipient email"
+                    type="text"
+                    value={recipientUserEmailsInput}
+                    onChange={(e) => setRecipientUserEmailsInput(e.target.value)}
+                    placeholder="Enter emails, comma-separated"
                     className="w-full rounded-lg border border-[#8ca4ac] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#217eaa]"
                   />
+                  <p className="text-xs text-gray-500 mt-1">Leave blank for a public link (anyone with the link can access subject to permissions above).</p>
                 </div>
 
                 {error && (

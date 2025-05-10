@@ -1,15 +1,14 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; // Add useLocation
 import { api } from '../services/api';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'; // Use the same variable
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
 interface AuthContextType {
   user: any | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<{ mfaRequired: boolean }>;
-  completeMfaLogin: (token: string) => Promise<void>;
+  completeMfaLogin: (mfaToken: string) => Promise<void>; // Renamed token to mfaToken
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   error: string | null;
@@ -19,10 +18,10 @@ interface AuthContextType {
     profileImage: string | null;
   }>) => void;
   mfaRequired: boolean;
-  mfaSetupRequired: boolean; // Add this property
+  mfaSetupRequired: boolean;
   tempUserId: string | null;
-  refreshUserData: () => Promise<void>; // Add this
-  resetMfaSetupState: () => void; // Add this
+  refreshUserData: () => Promise<void>;
+  resetMfaSetupState: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,29 +32,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
   const [mfaRequired, setMfaRequired] = useState(false);
   const [tempUserId, setTempUserId] = useState<string | null>(null);
-  const [rememberMeOption, setRememberMeOption] = useState(false); // Store rememberMe state
+  const [rememberMeOption, setRememberMeOption] = useState(false);
   const [mfaSetupRequired, setMfaSetupRequired] = useState(false);
-  const [blockRedirects, setBlockRedirects] = useState(false); // Add a new state variable to block redirects during MFA setup
+  const [blockRedirects, setBlockRedirects] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation(); // Get current location for redirect logic
 
   const checkLoggedIn = async () => {
-    // Check if we're on a setup page that shouldn't redirect
     const currentPath = window.location.pathname;
     if (currentPath.startsWith('/setup-password/') || currentPath.startsWith('/reset-password/')) {
       console.log('Setup/reset page detected, skipping auth check');
       setIsLoading(false);
-      return; // Skip everything for these special paths
+      return;
     }
 
-    // Check all possible MFA setup flags
     const mfaSetupInProgress = sessionStorage.getItem('mfa-setup-in-progress') === 'true';
     const localStorageBlock = localStorage.getItem('mfa-setup-block') === 'true';
-    
-    // If ANY flag indicates setup is in progress, don't continue
+
     if (mfaSetupInProgress || localStorageBlock || blockRedirects || mfaSetupRequired) {
-      return; // Exit immediately
+      return;
     }
-    
+
     const token = localStorage.getItem('auth-token');
     if (token) {
       setIsLoading(true);
@@ -65,32 +62,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             'auth-token': token
           }
         });
-        
+
         if (response.ok) {
           const userData = await response.json();
           setUser(userData);
-          
-          // CRITICAL FIX: Check needsMfaSetup flag from backend
+
           if (userData.needsMfaSetup) {
             setMfaSetupRequired(true);
             setIsLoading(false);
-            return; // IMPORTANT: Exit early to prevent redirect
+            return;
           }
-          
-          // Only redirect if not on an appropriate page and not setting up MFA
-          if (!mfaSetupRequired) { // Only redirect if not in MFA setup
+
+          if (!mfaSetupRequired) {
             const noRedirectPaths = ['/profile', '/settings', '/admin', '/dashboard', '/teams', '/shared-links', '/vault'];
             const currentPath = window.location.pathname;
-            
-            // Check specifically for setup-password and reset-password paths first
+
             if (currentPath.startsWith('/setup-password') || currentPath.startsWith('/reset-password')) {
               console.log('On password setup/reset page, preventing redirect');
-              // Do nothing - allow these pages to remain accessible
-            }
-            // Make path checking more robust with case-insensitive comparison and includes instead of startsWith
-            else if (!noRedirectPaths.some(path => currentPath.toLowerCase().includes(path.toLowerCase()))) {
+            } else if (!noRedirectPaths.some(path => currentPath.toLowerCase().includes(path.toLowerCase()))) {
               console.log('Redirecting from', currentPath);
-              // Redirect based on user role
               if (userData.role === 'admin' || userData.role === 'super_admin') {
                 navigate('/admin');
               } else {
@@ -99,7 +89,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
         } else {
-          // Token invalid
           localStorage.removeItem('auth-token');
           setUser(null);
         }
@@ -113,12 +102,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Update the initial login check to include redirection logic
   useEffect(() => {
     checkLoggedIn();
-  }, [navigate]); // Add navigate as a dependency
+  }, [navigate]);
 
-  // Update the login function to immediately set the MFA setup flag
   const login = async (email: string, password: string, rememberMe = false) => {
     setError(null);
     setRememberMeOption(rememberMe);
@@ -134,83 +121,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (contentType && contentType.includes('application/json')) {
         data = await response.json();
       } else {
-        data = await response.text();
+        const textData = await response.text();
+        if (response.ok) {
+          data = textData;
+        } else {
+          try {
+            data = JSON.parse(textData);
+          } catch (e) {
+            throw new Error(textData || `Login failed with status: ${response.status}`);
+          }
+        }
       }
-      
-      // If 2FA setup is needed, IMMEDIATELY block redirects with stronger flags
+
+      if (!response.ok) {
+        const errorMessage = typeof data === 'object' && data.error ? data.error : (typeof data === 'string' ? data : 'Login failed');
+        throw new Error(errorMessage);
+      }
+
       if (typeof data === 'object' && data.mfaRequired && data.setupRequired) {
-       
-        console.log('[AuthContext Login] MFA Setup Required. Received data:', JSON.stringify(data));
-        console.log(`[AuthContext Login] data.setupToken value: ${data.setupToken}`);
-        
-
-        // IMPORTANT: Store userId in sessionStorage with the correct key
         sessionStorage.setItem('temp-user-id', data.userId);
-
-        // Store the setup token (existing code)
         if (data.setupToken) {
           sessionStorage.setItem('mfa-setup-token', data.setupToken);
-          console.log('[AuthContext Login] Stored mfa-setup-token in sessionStorage.'); // Log success
-        } else {
-          console.error('[AuthContext Login] ERROR: data.setupToken was missing or undefined! Cannot store.'); // Log failure
         }
-
         setTempUserId(data.userId);
         setMfaSetupRequired(true);
         setBlockRedirects(true);
-
-        // Make sure the token is stored (redundant check, but keep for now)
-        // if (data.setupToken) {
-        //   sessionStorage.setItem('mfa-setup-token', data.setupToken);
-        // }
-
         sessionStorage.setItem('mfa-setup-in-progress', 'true');
         localStorage.setItem('mfa-setup-block', 'true');
-
         return { mfaRequired: true, setupRequired: true };
       }
-      
-      // Regular MFA required - just verification
+
       if (typeof data === 'object' && data.mfaRequired) {
         setTempUserId(data.userId);
         setMfaRequired(true);
         return { mfaRequired: true };
       }
 
-      // Clean up any lingering MFA setup flags if the response doesn't require setup
-      if (!(typeof data === 'object' && data.mfaRequired && data.setupRequired)) {
-        sessionStorage.removeItem('mfa-setup-in-progress');
-        sessionStorage.removeItem('mfa-setup-token');
-        localStorage.removeItem('mfa-setup-block');
-        setBlockRedirects(false);
-        setMfaSetupRequired(false);
-      }
+      sessionStorage.removeItem('mfa-setup-in-progress');
+      sessionStorage.removeItem('mfa-setup-token');
+      localStorage.removeItem('mfa-setup-block');
+      setBlockRedirects(false);
+      setMfaSetupRequired(false);
 
-      // Normal login flow continues...
-      // Store token in localStorage only, ignoring rememberMe
       const token = typeof data === 'object' ? data.token : data;
       localStorage.setItem('auth-token', token);
-      
-      // Get user info with role
+
       const userResponse = await fetch(`${API_BASE_URL}/user/verify`, {
-        headers: {
-          'auth-token': token
-        }
+        headers: { 'auth-token': token }
       });
 
       if (userResponse.ok) {
         const userData = await userResponse.json();
         setUser(userData);
 
-        // Add small delay before redirection
         setTimeout(() => {
-          // Redirect based on role
-          if (userData.role === 'admin' || userData.role === 'super_admin') {
-            navigate('/admin');
+          const loginRedirectState = location.state as { from?: string, reason?: string };
+          if (loginRedirectState?.reason === 'private_share_access' && loginRedirectState?.from) {
+            console.log('[AuthContext] Redirecting back to private share:', loginRedirectState.from);
+            navigate(loginRedirectState.from, { replace: true });
           } else {
-            navigate('/dashboard');
+            if (userData.role === 'admin' || userData.role === 'super_admin') {
+              navigate('/admin', { replace: true });
+            } else {
+              navigate('/dashboard', { replace: true });
+            }
           }
-        }, 100); // should be enough
+        }, 100);
+      } else {
+        localStorage.removeItem('auth-token');
+        throw new Error("Failed to verify user after login.");
       }
 
       return { mfaRequired: false };
@@ -220,70 +199,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Update the completeMfaLogin function
-  const completeMfaLogin = async (token: string) => {
+  const completeMfaLogin = async (mfaToken: string) => {
     setError(null);
     try {
       if (!tempUserId) {
         throw new Error('No pending MFA verification');
       }
-      
-      // Important: Include isSetupMode flag to tell backend this was a setup completion
+
       const isSetupMode = mfaSetupRequired;
-      
+
       const response = await fetch(`${API_BASE_URL}/user/login/verify-mfa`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          userId: tempUserId, 
-          token,
+        body: JSON.stringify({
+          userId: tempUserId,
+          token: mfaToken,
           rememberMe: rememberMeOption,
-          isSetupMode // Add this flag
+          isSetupMode
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.text();
-        throw new Error(errorData || 'MFA verification failed');
+        try {
+          const parsedError = JSON.parse(errorData);
+          throw new Error(parsedError.error || 'MFA verification failed');
+        } catch (e) {
+          throw new Error(errorData || 'MFA verification failed');
+        }
       }
 
       const jwtToken = await response.text();
-      
-      // Store in localStorage only
       localStorage.setItem('auth-token', jwtToken);
-      
-      // Get user info
-      const userResponse = await fetch(`${API_BASE_URL}user/verify`, {
-        headers: {
-          'auth-token': jwtToken
-        }
+
+      const userResponse = await fetch(`${API_BASE_URL}/user/verify`, {
+        headers: { 'auth-token': jwtToken }
       });
-      
+
       if (userResponse.ok) {
         const userData = await userResponse.json();
         setUser(userData);
         setMfaRequired(false);
         setTempUserId(null);
-        
-        // Redirect based on role
-        if (userData.role === 'admin' || userData.role === 'super_admin') {
-          navigate('/admin');
-        } else {
-          navigate('/dashboard');
-        }
-      }
+        setMfaSetupRequired(false);
+        sessionStorage.removeItem('mfa-setup-in-progress');
+        localStorage.removeItem('mfa-setup-block');
+        setBlockRedirects(false);
 
-      // Reset MFA state at the end
-      sessionStorage.removeItem('mfa-setup-in-progress');
-      localStorage.removeItem('mfa-setup-block');
-      setBlockRedirects(false);
-      setMfaRequired(false);
-      setMfaSetupRequired(false);
+        const loginRedirectState = location.state as { from?: string, reason?: string };
+        if (loginRedirectState?.reason === 'private_share_access' && loginRedirectState?.from) {
+          console.log('[AuthContext] Redirecting back to private share after MFA:', loginRedirectState.from);
+          navigate(loginRedirectState.from, { replace: true });
+        } else {
+          if (userData.role === 'admin' || userData.role === 'super_admin') {
+            navigate('/admin', { replace: true });
+          } else {
+            navigate('/dashboard', { replace: true });
+          }
+        }
+      } else {
+        localStorage.removeItem('auth-token');
+        throw new Error("Failed to verify user after MFA.");
+      }
     } catch (err: any) {
       setError(err.message);
-      throw err;
     }
   };
 
@@ -303,7 +284,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(errorData || 'Registration failed');
       }
 
-      // Auto login after successful registration
       await login(email, password);
     } catch (err: any) {
       setError(err.message);
@@ -333,13 +313,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
       if (!token) return;
-      
+
       const userResponse = await fetch(`${API_BASE_URL}/profile`, {
         headers: {
           'auth-token': token
         }
       });
-      
+
       if (userResponse.ok) {
         const userData = await userResponse.json();
         setUser({
@@ -370,15 +350,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         isLoading,
         mfaRequired,
-        mfaSetupRequired, // Add this
+        mfaSetupRequired,
         tempUserId,
         login,
         completeMfaLogin,
         register,
         logout,
         updateUser,
-        refreshUserData, // Add this
-        resetMfaSetupState, // Add this
+        refreshUserData,
+        resetMfaSetupState,
         error
       }}
     >

@@ -1,4 +1,4 @@
-const API_URL = 'https://elysian-ryc6x.ondigitalocean.app/elysian-back/api'; // Adjust this to your API URL
+const API_URL = 'https://elysian-ryc6x.ondigitalocean.app/elysian-back/api';
 import { VaultFile } from "../pages/VaultPage";
 
 interface SystemSettings {
@@ -9,7 +9,6 @@ interface SystemSettings {
 }
 
 export const api = {
-  // Replace your authFetch function with this more robust implementation
   authFetch: async (url: string, options: RequestInit = {}) => {
     const token = localStorage.getItem('auth-token');
     const mfaSetupToken = sessionStorage.getItem('mfa-setup-token');
@@ -415,7 +414,8 @@ export const api = {
       fileId: string; 
       permissions?: { canView: boolean; canEdit: boolean; canDownload: boolean }; 
       expirationDays?: number;
-      recipientEmail?: string;
+      recipientEmail?: string; // Existing optional field
+      recipientUserEmails?: string[]; // New optional field for multiple emails
     }) => {
       const response = await api.authFetch('/shares/share', {
         method: 'POST',
@@ -454,7 +454,7 @@ export const api = {
     // Get all shares created by the current user
     listMyShares: async () => {
       const response = await api.authFetch('/shares/myshares'); // Use authFetch instead of direct fetch
-      return response.json();
+      return response.json(); // Expects response to include isPrivateShare and recipientUserIds
     },
     
     // Update a share's active status
@@ -471,7 +471,61 @@ export const api = {
         throw new Error(`Failed to update share: ${response.status}`);
       }
       return response.json();
-    }
+    },
+
+    // New function to get public share metadata
+    getPublicShareMetadata: async (shareToken: string) => {
+      const response = await fetch(`${API_URL}/share/${shareToken}`); // Public endpoint
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to load shared file metadata' }));
+        throw new Error(errorData.error || 'Failed to load shared file metadata');
+      }
+      return response.json(); // Expects { ..., isPrivateShare: boolean, fileName: string, fileSize: number, fileType: string, ... }
+    },
+
+    // New function to get a blob for viewing a private share
+    getPrivateShareViewBlob: async (shareToken: string): Promise<Blob> => {
+      const response = await api.authFetch(`/shares/private/${shareToken}/view`);
+      if (!response.ok) {
+        let errorMsg = `Failed to view private share (Status: ${response.status})`;
+        try {
+            const errorData = await response.json();
+            errorMsg = errorData.error || errorMsg;
+        } catch (e) {
+            // If parsing JSON fails, use the status text or default message
+        }
+        const err = new Error(errorMsg);
+        (err as any).status = response.status;
+        throw err;
+      }
+      return response.blob();
+    },
+
+    // New function to download a private share
+    downloadPrivateShare: async (shareToken: string, fileName: string) => {
+      const response = await api.authFetch(`/shares/private/${shareToken}/download`);
+      if (!response.ok) {
+        let errorMsg = `Failed to download private share (Status: ${response.status})`;
+        try {
+            const errorData = await response.json();
+            errorMsg = errorData.error || errorMsg;
+        } catch (e) {
+            // If parsing JSON fails, use the status text or default message
+        }
+        const err = new Error(errorMsg);
+        (err as any).status = response.status;
+        throw err;
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    },
   },
   teams: {
     list: async () => {

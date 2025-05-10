@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { api } from '../services/api';
-import { Clock, Eye, Download, Edit2, ToggleLeft, ToggleRight, AlertTriangle, ExternalLink, Link } from 'lucide-react';
+import { Clock, Eye, Download, Edit2, ToggleLeft, ToggleRight, AlertTriangle, ExternalLink, Link as LinkIcon, Users, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 
@@ -19,6 +19,8 @@ interface SharedLink {
   };
   accessCount: number;
   createdAt: string;
+  isPrivateShare: boolean;
+  recipientUserIds?: number[];
 }
 
 export function SharedLinksPage() {
@@ -46,7 +48,6 @@ export function SharedLinksPage() {
   const toggleShareStatus = async (id: number, currentStatus: boolean) => {
     try {
       await api.shares.updateStatus(id, !currentStatus);
-      // Update local state to reflect the change
       setSharedLinks(sharedLinks.map(link => 
         link.id === id ? { ...link, isActive: !currentStatus } : link
       ));
@@ -83,7 +84,7 @@ export function SharedLinksPage() {
           </div>
         ) : sharedLinks.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-            <Link className="w-16 h-16 text-neutral-300 mx-auto mb-4" />
+            <LinkIcon className="w-16 h-16 text-neutral-300 mx-auto mb-4" />
             <h2 className="text-xl font-medium text-gray-700 mb-2">No shared links yet</h2>
             <p className="text-neutral-500 mb-6">
               When you share files, your links will appear here for easy management.
@@ -96,6 +97,7 @@ export function SharedLinksPage() {
                 <thead>
                   <tr className="bg-neutral-50 border-b border-neutral-200">
                     <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">File</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Type</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Created</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Expires</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Permissions</th>
@@ -109,6 +111,22 @@ export function SharedLinksPage() {
                     <tr key={link.id} className="hover:bg-neutral-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium truncate max-w-xs">
                         {link.fileName}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
+                        {link.isPrivateShare ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                            <Lock className="w-3 h-3 mr-1" />
+                            Private
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            <Users className="w-3 h-3 mr-1" />
+                            Public
+                          </span>
+                        )}
+                        {link.isPrivateShare && link.recipientUserIds && link.recipientUserIds.length > 0 && (
+                           <span className="ml-1 text-xs text-gray-400">({link.recipientUserIds.length} users)</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
                         {format(new Date(link.createdAt), 'MMM d, yyyy')}
