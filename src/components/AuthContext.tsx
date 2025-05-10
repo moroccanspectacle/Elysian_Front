@@ -82,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               '/teams', 
               '/shared-links', 
               '/vault',
-              '/share' // Add '/share' here
+              '/share'
             ];
             const currentPath = window.location.pathname;
 
