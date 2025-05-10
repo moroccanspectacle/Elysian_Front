@@ -74,13 +74,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           if (!mfaSetupRequired) {
-            const noRedirectPaths = ['/profile', '/settings', '/admin', '/dashboard', '/teams', '/shared-links', '/vault'];
+            const noRedirectPaths = [
+              '/profile', 
+              '/settings', 
+              '/admin', 
+              '/dashboard', 
+              '/teams', 
+              '/shared-links', 
+              '/vault',
+              '/share' // Add '/share' here
+            ];
             const currentPath = window.location.pathname;
 
-            if (currentPath.startsWith('/setup-password') || currentPath.startsWith('/reset-password')) {
-              console.log('On password setup/reset page, preventing redirect');
-            } else if (!noRedirectPaths.some(path => currentPath.toLowerCase().includes(path.toLowerCase()))) {
-              console.log('Redirecting from', currentPath);
+            // Normalize currentPath to handle potential leading double slashes and ensure it starts with a single slash
+            const normalizedPath = '/' + currentPath.replace(/^\/+/, '').split('/').filter(Boolean).join('/');
+
+            if (normalizedPath.startsWith('/setup-password/') || normalizedPath.startsWith('/reset-password/')) {
+              console.log('[AuthContext] On password setup/reset page, preventing redirect for:', normalizedPath);
+            } else if (!noRedirectPaths.some(path => normalizedPath.toLowerCase().startsWith(path.toLowerCase()))) {
+              console.log('[AuthContext] Redirecting from', normalizedPath, 'to dashboard/admin because it does not start with any of noRedirectPaths.');
               if (userData.role === 'admin' || userData.role === 'super_admin') {
                 navigate('/admin');
               } else {
