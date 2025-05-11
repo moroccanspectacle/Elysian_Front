@@ -29,14 +29,14 @@ const features = [
 const testimonials = [
   {
     name: 'Sara Srifi',
-    role: 'CEO at EKKO',
-    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100',
+    role: 'ECHO, Founder & CEO',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Pokimane_in_2019_in_a_Podcast.jpg/250px-Pokimane_in_2019_in_a_Podcast.jpg',
     quote: 'Elysian Vault has transformed how we handle sensitive client documents. The security features are unmatched.',
   },
   {
-    name: 'Marcus Rodriguez',
-    role: 'Legal Director',
-    image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&h=100',
+    name: 'Yassine Moussaid',
+    role: 'TensorFlow, Founder & CEO',
+    image: 'https://i.ytimg.com/vi/hAsZCTL__lo/maxresdefault.jpg',
     quote: 'The intuitive interface and robust security features make Elysian Vault our go-to platform for document sharing.',
   },
 ];
