@@ -107,7 +107,7 @@ export function SharedFilePage() {
           setError("Viewing is not permitted for this public share.");
           return;
         }
-        targetUrl = 'https://elysian-ryc6x.ondigitalocean.app/elysian-back/api/share/${shareToken}/view';
+        targetUrl = `https://elysian-ryc6x.ondigitalocean.app/elysian-back/api/share/${shareToken}/view`;
       }
 
       setViewingFile({
