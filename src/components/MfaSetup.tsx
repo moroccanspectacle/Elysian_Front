@@ -16,67 +16,68 @@ export function MfaSetup({ onComplete, onCancel, enforced = false }: MfaSetupPro
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const { user, tempUserId: contextUserId } = useAuth(); // Get from context too
+  const { user, tempUserId: contextUserId } = useAuth();
 
   useEffect(() => {
-    // Generate MFA secret and QR code when component mounts
     const setupMfa = async () => {
       try {
         setIsLoading(true);
+        setError(null); // Clear previous errors
         
-        // Diagnostic logging
-        let tempUserId = sessionStorage.getItem('temp-user-id');
-        const mfaToken = sessionStorage.getItem('mfa-setup-token');
-        
-        console.log("MFA Setup Diagnostics:", {
-          tempUserId: tempUserId ? 'present' : 'missing',
-          tokenExists: mfaToken ? 'present' : 'missing',
-          allSessionStorageKeys: Object.keys(sessionStorage)
+        const mfaSetupTokenInSession = sessionStorage.getItem('mfa-setup-token');
+        console.log("MFA Setup Initializing:", {
+          enforced,
+          userIdFromAuthContext: user?.id,
+          tempUserIdFromAuthContext: contextUserId,
+          tempUserIdFromSessionStorage: sessionStorage.getItem('temp-user-id'),
+          mfaSetupTokenInSession: !!mfaSetupTokenInSession,
         });
         
-        console.log("Attempting to set up MFA...");
-        
-        // Get user ID from session storage or context
-         tempUserId = sessionStorage.getItem('temp-user-id');
-        
-        // Try multiple methods
         let result;
-        try {
-          // Try the direct method first
-          result = await api.mfa.directSetup();
-        } catch (directError) {
-          console.error("Direct setup failed:", directError);
-          
-          // Get userId from multiple sources
-          const sessionUserId = sessionStorage.getItem('temp-user-id');
-          const fallbackUserId = sessionUserId || contextUserId || user?.id;
-          
-          if (fallbackUserId) {
-            console.log("Attempting emergency setup with userId:", fallbackUserId);
-            result = await api.mfa.emergencySetup(fallbackUserId);
-          } else {
-            throw new Error("No user ID available for emergency setup");
+
+        if (enforced && user && user.id) {
+          // Enforced MFA for an existing, identified user
+          console.log(`Attempting MFA setup for enforced user: ${user.id} using emergencySetup.`);
+          result = await api.mfa.emergencySetup(user.id);
+        } else {
+          // Initial MFA setup (e.g., during registration or first-time prompt without full user session)
+          console.log("Attempting initial MFA setup using directSetup (will fallback to emergencySetup if needed).");
+          try {
+            result = await api.mfa.directSetup();
+          } catch (directError: any) {
+            console.error("Initial directSetup failed:", directError.message);
+            // For initial setup, contextUserId (tempUserId from AuthContext) or sessionUserId should be used.
+            const idForEmergencyFallback = contextUserId || sessionStorage.getItem('temp-user-id'); 
+            
+            if (idForEmergencyFallback) {
+              console.log(`Falling back to emergencySetup with ID: ${idForEmergencyFallback} for initial setup.`);
+              result = await api.mfa.emergencySetup(idForEmergencyFallback);
+            } else {
+              console.error("No temporary user ID found for emergency fallback during initial setup. Re-throwing directSetup error.");
+              throw directError; 
+            }
           }
         }
         
-        console.log("MFA setup result:", result);
+        console.log("MFA setup API call result:", result);
         
-        if (result.qr) {
+        if (result && result.qr) {
           setQrCode(result.qr);
           setSecret(result.secret);
         } else {
-          setError('QR code was not returned by the server');
+          setError('QR code or secret was not returned by the server. API result might be missing data or an error occurred.');
+          console.error("MFA setup result did not contain QR code or secret:", result);
         }
       } catch (err: any) {
-        console.error("MFA setup error:", err);
-        setError(err.message || 'Failed to set up MFA');
+        console.error("Error during MFA setup in useEffect:", err);
+        setError(err.message || 'Failed to set up MFA. Please try again.');
       } finally {
         setIsLoading(false);
       }
     };
 
     setupMfa();
-  }, []);
+  }, [user, contextUserId, enforced]); // Added dependencies: user, contextUserId, enforced
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
