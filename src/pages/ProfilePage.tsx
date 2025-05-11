@@ -12,7 +12,7 @@ export function ProfilePage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(
-    user?.profileImage ? `http://localhost:3000${user.profileImage}` : null
+    user?.profileImage ? `https://elysian-ryc6x.ondigitalocean.app/elysian-back${user.profileImage}` : null
   );
   
   const [profileData, setProfileData] = useState({
@@ -38,7 +38,7 @@ export function ProfilePage() {
           email: userData.email || ''
         });
         if (userData.profileImage) {
-          setProfileImagePreview(`http://localhost:3000${userData.profileImage}`);
+          setProfileImagePreview(`https://elysian-ryc6x.ondigitalocean.app/elysian-back${userData.profileImage}`);
         }
       } catch (error) {
         console.error('Error fetching profile:', error);

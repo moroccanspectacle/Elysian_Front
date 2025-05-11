@@ -335,7 +335,7 @@ export function TeamMembersPage() {
                                 <img 
                                   src={member.profileImage.startsWith('http') 
                                     ? member.profileImage 
-                                    : `http://localhost:3000${member.profileImage}`}
+                                    : `https://elysian-ryc6x.ondigitalocean.app/elysian-back${member.profileImage}`}
                                   alt={member.username} 
                                   className="h-10 w-10 object-cover"
                                 />

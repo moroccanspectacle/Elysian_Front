@@ -249,7 +249,7 @@ function UserManagement() {
                       <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mr-3 flex-shrink-0">
                         {user.profileImage ? (
                           <img
-                            src={`http://localhost:3000${user.profileImage}`}
+                            src={`https://elysian-ryc6x.ondigitalocean.app/elysian-back${user.profileImage}`}
                             alt={user.username}
                             className="w-full h-full object-cover"
                             onError={(e) => (e.currentTarget.style.display = 'none')}
