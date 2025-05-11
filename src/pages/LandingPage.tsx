@@ -6,8 +6,8 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 const features = [
   {
     icon: Shield,
-    title: 'End-to-End Encryption',
-    description: 'Your documents are protected with military-grade AES-256 encryption, ensuring complete privacy and security.',
+    title: 'Server-side Encryption',
+    description: 'Your documents are protected with strong AES-256 encryption on our servers, ensuring security for your stored files.',
   },
   {
     icon: Clock,
@@ -94,7 +94,7 @@ export function LandingPage() {
               <a href="#faq" className="text-neutral-700 hover:text-primary-600 font-medium">FAQ</a>
             </nav>
             
-            <div className="flex space-x-4">
+            <div className="flex space-x-4 items-center">
               <Link to="/login" className="text-neutral-700 hover:text-primary-600 font-medium">
                 Login
               </Link>
