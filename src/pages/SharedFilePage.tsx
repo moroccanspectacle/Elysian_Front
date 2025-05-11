@@ -76,7 +76,7 @@ export function SharedFilePage() {
           setError("Downloading is not permitted for this public share.");
           return;
         }
-        window.location.href = 'https://elysian-ryc6x.ondigitalocean.app/elysian-back/api/share/${shareToken}/download';
+        window.location.href = `https://elysian-ryc6x.ondigitalocean.app/elysian-back/api/share/${shareToken}/download`;
       }
     } catch (err: any) {
       console.error('Download error:', err);
