@@ -328,7 +328,6 @@ export const api = {
       });
       return response.json();
     },
-    // Add this direct setup method that doesn't use authFetch
     directSetup: async () => {
       // Get both tokens for verification
       const mfaSetupToken = sessionStorage.getItem('mfa-setup-token');
@@ -355,7 +354,7 @@ export const api = {
       
       console.log('Request headers:', headers);
       
-      const response = await fetch(`${API_URL}/mfa/debug-setup`, { // Use debug endpoint
+      const response = await fetch(`${API_URL}/mfa/setup`, { // Use standard setup endpoint
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -379,7 +378,7 @@ export const api = {
       console.log('Emergency setup using userId:', userId);
       console.log('We have token:', mfaSetupToken ? 'yes' : 'no');
       
-      const response = await fetch(`${API_URL}/mfa/debug-setup`, {
+      const response = await fetch(`${API_URL}/mfa/setup`, { // Use standard setup endpoint
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
